@@ -1,0 +1,686 @@
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import * as XLSX from "xlsx";
+import {
+  Users, Layers, FileText, Settings2, Plus, Trash2, Printer, Download, Upload,
+  ChevronRight, ChevronLeft, Check, Phone, Globe, Sparkles, Calculator, X,
+  Save, List, HardHat, Copy, FolderOpen, CheckCircle2, Circle, Send, FileSpreadsheet, Wrench
+} from "lucide-react";
+
+/* ============================================================
+   XCONS E&C — HỆ THỐNG BÁO GIÁ & QUẢN LÝ DỰ ÁN  (V2)
+   WE BUILD YOUR DREAM  ·  #0C2723 / Trắng / Gold
+   ============================================================ */
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+:root{
+  --green:#0C2723;--green-2:#143a33;--green-3:#1d4d44;--gold:#C2A24E;--gold-soft:#E7D6A8;
+  --cream:#F6F3EA;--paper:#fff;--ink:#13211d;--muted:#6b7d77;--line:#e3e0d6;--line-d:#d2cdbf;
+  --ok:#1f7a5b;--danger:#b23b3b;--blue:#2f6f8f;--amber:#b08a2e;
+  --shadow:0 12px 40px -18px rgba(12,39,35,.35);
+}
+*{box-sizing:border-box}
+.xc-root{font-family:'Be Vietnam Pro',sans-serif;color:var(--ink);min-height:100vh;
+  background:radial-gradient(1200px 600px at 80% -10%,#15392f,transparent 55%),radial-gradient(900px 500px at -10% 110%,#0e2c26,transparent 50%),var(--cream);-webkit-font-smoothing:antialiased}
+.xc-wrap{max-width:1140px;margin:0 auto;padding:0 18px 64px}
+/* topbar */
+.xc-top{background:var(--green);color:#fff;border-bottom:2px solid var(--gold)}
+.xc-top-in{max-width:1140px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.xc-brand{display:flex;align-items:center;gap:12px}
+.xc-mark{width:42px;height:42px;border:1.5px solid var(--gold);border-radius:9px;display:grid;place-items:center;background:linear-gradient(160deg,#10322b,#0a201c)}
+.xc-mark b{font-weight:800;color:var(--gold);font-size:18px;letter-spacing:.5px}
+.xc-name{font-weight:800;font-size:18px;letter-spacing:1.5px;line-height:1}
+.xc-tag{font-size:10px;letter-spacing:3px;color:var(--gold-soft);font-weight:600;margin-top:3px}
+.xc-top-r{display:flex;align-items:center;gap:14px;font-size:12.5px;color:#dfe7e3;flex-wrap:wrap}
+.xc-top-r a{color:#dfe7e3;text-decoration:none;display:flex;align-items:center;gap:5px}
+.xc-cfg-btn{background:var(--gold);color:var(--green);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-family:inherit;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.xc-cfg-btn:hover{filter:brightness(1.06)}
+/* tabs */
+.xc-tabs{display:flex;gap:6px;margin:20px 0 4px;flex-wrap:wrap}
+.xc-tab{background:var(--paper);border:1px solid var(--line);border-radius:11px 11px 0 0;padding:11px 18px;cursor:pointer;font-weight:700;font-size:13.5px;color:var(--muted);display:flex;align-items:center;gap:8px;border-bottom:none}
+.xc-tab.active{background:var(--green);color:#fff}
+.xc-tab .pill{background:var(--gold);color:var(--green);border-radius:20px;font-size:11px;padding:1px 8px;font-weight:800}
+/* steps */
+.xc-steps{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}
+.xc-step{flex:1;min-width:150px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:11px;transition:.2s}
+.xc-step.active{background:var(--green);border-color:var(--green);box-shadow:var(--shadow)}
+.xc-step.active .xc-st-t,.xc-step.active .xc-st-s{color:#fff}
+.xc-step.active .xc-st-n{background:var(--gold);color:var(--green)}
+.xc-step.done .xc-st-n{background:var(--ok);color:#fff}
+.xc-st-n{width:30px;height:30px;border-radius:8px;background:var(--cream);color:var(--green);display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0}
+.xc-st-t{font-weight:700;font-size:13.5px;line-height:1.1}
+.xc-st-s{font-size:11px;color:var(--muted);margin-top:2px}
+/* card */
+.xc-card{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.xc-card-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#fff,#fbfaf4)}
+.xc-card-h h2{font-size:16px;font-weight:800;margin:0;color:var(--green)}
+.xc-card-h p{font-size:12px;color:var(--muted);margin:2px 0 0}
+.xc-icon{width:34px;height:34px;border-radius:9px;background:var(--green);color:var(--gold);display:grid;place-items:center;flex-shrink:0}
+.xc-body{padding:20px}
+/* form */
+.xc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.xc-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.xc-f label{display:block;font-size:12px;font-weight:600;color:var(--green-2);margin-bottom:6px}
+.xc-f input,.xc-f select,.xc-f textarea{width:100%;border:1px solid var(--line-d);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13.5px;color:var(--ink);background:#fff;outline:none;transition:.15s}
+.xc-f input:focus,.xc-f select:focus{border-color:var(--green-3);box-shadow:0 0 0 3px rgba(20,58,51,.1)}
+.xc-suffix{position:relative}.xc-suffix span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);pointer-events:none}.xc-suffix input{padding-right:38px}
+/* packages */
+.xc-pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.xc-pkg{border:1.5px solid var(--line-d);border-radius:13px;padding:15px;cursor:pointer;transition:.18s;background:#fff;position:relative}
+.xc-pkg:hover{border-color:var(--green-3)}
+.xc-pkg.sel{border-color:var(--green);background:linear-gradient(180deg,#0c2723,#11332c);color:#fff;box-shadow:var(--shadow)}
+.xc-pkg.sel .xc-pkg-p{color:var(--gold-soft)}.xc-pkg.sel .xc-pkg-d{color:#cfe0da}
+.xc-pkg-badge{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-d);display:grid;place-items:center}
+.xc-pkg.sel .xc-pkg-badge{background:var(--gold);border-color:var(--gold);color:var(--green)}
+.xc-pkg-t{font-weight:800;font-size:14px;margin-bottom:2px}
+.xc-pkg-p{font-weight:700;font-size:15px;color:var(--green);margin-bottom:6px}
+.xc-pkg-d{font-size:11.5px;color:var(--muted);line-height:1.5}
+.xc-sect-t{font-size:12.5px;font-weight:800;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;margin:22px 0 11px;display:flex;align-items:center;gap:8px}
+.xc-sect-t:first-child{margin-top:0}.xc-sect-t::after{content:"";flex:1;height:1px;background:var(--line)}
+.xc-toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.xc-chk{display:flex;align-items:center;gap:9px;border:1px solid var(--line-d);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;background:#fff;transition:.15s}
+.xc-chk.on{background:var(--green);color:#fff;border-color:var(--green)}
+.xc-chk .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-d);display:grid;place-items:center}
+.xc-chk.on .box{background:var(--gold);border-color:var(--gold);color:var(--green)}
+/* table */
+.xc-table{width:100%;border-collapse:collapse;font-size:13px}
+.xc-table th{text-align:left;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:1.5px solid var(--line-d)}
+.xc-table td{padding:7px 10px;border-bottom:1px solid var(--line)}
+.xc-table tr:hover td{background:#fbfaf4}.xc-table .num{text-align:right}
+.xc-cellin{width:100%;border:1px solid transparent;border-radius:7px;padding:7px 8px;font-family:inherit;font-size:13px;background:#f7f5ee;text-align:right;outline:none}
+.xc-cellin:focus{border-color:var(--green-3);background:#fff}.xc-cellin.t{text-align:left}
+.xc-mini-btn{border:none;background:#fbeaea;color:var(--danger);border-radius:7px;width:30px;height:30px;cursor:pointer;display:grid;place-items:center}.xc-mini-btn:hover{background:#f5d6d6}
+.xc-add{margin-top:12px;border:1.5px dashed var(--line-d);background:#fbfaf4;color:var(--green);border-radius:10px;padding:10px;width:100%;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.xc-add:hover{border-color:var(--green-3)}
+/* summary */
+.xc-sum{background:var(--green);color:#fff;border-radius:14px;padding:18px 20px;margin-top:18px}
+.xc-sum-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13.5px;color:#d8e3df}
+.xc-sum-row b{color:#fff;font-weight:600}
+.xc-sum-div{height:1px;background:rgba(255,255,255,.13);margin:6px 0}
+.xc-sum-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:12px;border-top:1.5px solid var(--gold)}
+.xc-sum-total span{font-size:13px;letter-spacing:1px;color:var(--gold-soft);text-transform:uppercase;font-weight:700}
+.xc-sum-total b{font-size:26px;font-weight:800;color:#fff}
+/* buttons */
+.xc-nav{display:flex;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}
+.xc-btn{border:none;border-radius:10px;padding:12px 22px;font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.15s}
+.xc-btn.primary{background:var(--green);color:#fff}.xc-btn.primary:hover{background:var(--green-2)}
+.xc-btn.gold{background:var(--gold);color:var(--green)}.xc-btn.gold:hover{filter:brightness(1.06)}
+.xc-btn.ghost{background:#fff;color:var(--green);border:1px solid var(--line-d)}.xc-btn.ghost:hover{background:#fbfaf4}
+.xc-btn.sm{padding:8px 13px;font-size:12.5px;border-radius:8px}
+/* modal */
+.xc-ov{position:fixed;inset:0;background:rgba(8,24,21,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:18px;z-index:50}
+.xc-modal{background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.xc-modal-h{position:sticky;top:0;background:var(--green);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;z-index:2}
+.xc-modal-h h3{margin:0;font-size:15px;font-weight:800}
+.xc-x{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+/* badge */
+.xc-badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px}
+.b-draft{background:#eef0ee;color:#5d6b66}.b-sent{background:#e4eef3;color:var(--blue)}
+.b-won{background:#e6f2ec;color:var(--ok)}.b-build{background:#fbf1dc;color:var(--amber)}
+.b-done{background:var(--green);color:#fff}
+/* tracking */
+.xc-ms{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:#fff;cursor:pointer}
+.xc-ms.done{background:#f3f8f5;border-color:#cfe6da}
+.xc-ms .ic{flex-shrink:0}
+.xc-ms .t{font-weight:700;font-size:13.5px}
+.xc-ms .bar{height:7px;border-radius:6px;background:#eceae0;overflow:hidden;margin-top:6px}
+.xc-ms .fill{height:100%;background:linear-gradient(90deg,var(--green-3),var(--gold))}
+.xc-pay td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13px}
+.xc-empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:13.5px}
+/* quote doc */
+.xc-doc{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.xc-doc-top{background:var(--green);color:#fff;padding:26px 32px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--gold)}
+.xc-doc-title{padding:24px 32px 6px}
+.xc-doc-title h1{font-size:23px;font-weight:800;color:var(--green);margin:0;letter-spacing:.5px}
+.xc-doc-title .sub{font-size:12px;letter-spacing:2px;color:var(--gold);font-weight:700;margin-top:4px;text-transform:uppercase}
+.xc-doc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:14px 32px;font-size:12.5px}
+.xc-doc-meta div{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line-d);padding:5px 0}
+.xc-doc-meta .k{color:var(--muted)}.xc-doc-meta .v{font-weight:700;color:var(--green)}
+.xc-doc-sec{padding:6px 32px 0}
+.xc-doc-sec h4{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin:18px 0 8px;font-weight:800}
+.xc-dtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.xc-dtable th{background:#f3f0e6;color:var(--green);text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase}
+.xc-dtable th.n,.xc-dtable td.n{text-align:right}
+.xc-dtable td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.xc-dtable tfoot td{font-weight:700;border-bottom:none;padding-top:10px}
+.xc-doc-grand{margin:14px 32px;background:var(--green);color:#fff;border-radius:11px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+.xc-doc-grand span{font-size:12px;letter-spacing:1.5px;color:var(--gold-soft);text-transform:uppercase;font-weight:700}
+.xc-doc-grand b{font-size:24px;font-weight:800}
+.xc-doc-foot{padding:18px 32px 28px;font-size:11.5px;color:var(--muted);line-height:1.7}
+.xc-doc-foot .note-t{color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:1px;font-size:11px;margin-bottom:6px}
+.xc-doc-sign{display:flex;justify-content:space-between;margin-top:26px}
+.xc-doc-sign div{text-align:center;width:46%}
+.xc-doc-sign .role{font-weight:800;color:var(--green);font-size:12.5px}
+.xc-doc-sign .line{margin-top:54px;border-top:1px solid var(--line-d);padding-top:6px;font-size:11px;color:var(--muted)}
+@media (max-width:720px){.xc-grid,.xc-grid-3,.xc-pkgs{grid-template-columns:1fr}.xc-doc-meta{grid-template-columns:1fr}}
+@media print{body *{visibility:hidden!important}#xc-print,#xc-print *{visibility:visible!important}#xc-print{position:absolute;left:0;top:0;width:100%}.xc-doc{border:none;box-shadow:none;border-radius:0}@page{margin:12mm}}
+`;
+
+/* ---------- DEFAULT CONFIG (khung giá chuẩn 2026) ---------- */
+const DEFAULT_CFG = {
+  designPkgs: [
+    { id: "d1", t: "Tinh Gọn", price: 200000, d: "Kiến trúc + kết cấu + M&E, phối cảnh 3D ngoại thất." },
+    { id: "d2", t: "Cao Cấp", price: 300000, d: "Trọn bộ kiến trúc + 3D nội thất chi tiết từng phòng." },
+    { id: "d3", t: "Luxury", price: 400000, d: "Hồ sơ thi công đầy đủ, 3D dạo bước, tư vấn vật liệu nhập." },
+  ],
+  buildPkgs: [
+    { id: "b1", t: "Thô + NC Hoàn thiện", price: 4000000, d: "Vật tư thô + nhân công HT. Chủ nhà cấp vật tư hoàn thiện." },
+    { id: "b2", t: "Trọn Gói Tiêu Chuẩn", price: 6300000, d: "Trọn gói thô + hoàn thiện vật tư tiêu chuẩn." },
+    { id: "b3", t: "Trọn Gói Cao Cấp", price: 7800000, d: "Vật tư hoàn thiện thương hiệu cao cấp, gia công tinh." },
+    { id: "b4", t: "Luxury Signature", price: 9800000, d: "Vật liệu nhập khẩu, đội thi công tinh tuyển, giám sát riêng." },
+  ],
+  interiorPkgs: [
+    { id: "i0", t: "Không bao gồm", price: 0, d: "Không tính nội thất trong báo giá này." },
+    { id: "i1", t: "Cơ Bản", price: 3000000, d: "Nội thất cố định + đồ rời cơ bản theo m² sàn." },
+    { id: "i2", t: "Cao Cấp", price: 5000000, d: "Gỗ công nghiệp cao cấp + đồ rời + thiết bị đồng bộ." },
+    { id: "i3", t: "Luxury", price: 8000000, d: "Gỗ tự nhiên/veneer, đồ rời nhập khẩu, decor trọn gói." },
+  ],
+  defaultItems: [
+    { name: "Móng băng / móng cọc", coef: 50 },
+    { name: "Tầng trệt", coef: 100 },
+    { name: "Lầu 1", coef: 100 },
+    { name: "Lầu 2", coef: 100 },
+    { name: "Sân thượng có mái che", coef: 75 },
+    { name: "Mái BTCT", coef: 50 },
+    { name: "Sân vườn / tiểu cảnh", coef: 50 },
+  ],
+  vatRate: 8,
+};
+const PROJECT_TYPES = ["Biệt thự / Villa", "Nhà phố", "Villa nghỉ dưỡng", "Cải tạo / Nâng cấp"];
+const STYLES = ["Hiện đại (Modern)", "Tân cổ điển", "Cổ điển (Classic)", "Indochine", "Luxury Contemporary"];
+const STATUS = {
+  draft: { lb: "Nháp", cl: "b-draft" }, sent: { lb: "Đã gửi KH", cl: "b-sent" },
+  won: { lb: "Đã chốt", cl: "b-won" }, build: { lb: "Đang thi công", cl: "b-build" },
+  done: { lb: "Đã bàn giao", cl: "b-done" },
+};
+const DEF_MILESTONES = ["Chuẩn bị mặt bằng & Móng", "Phần thô (khung – sàn – tường)", "Xây tô & Chống thấm",
+  "Hệ thống M&E (điện – nước)", "Hoàn thiện (sơn, ốp lát, thiết bị)", "Thi công nội thất", "Nghiệm thu & Bàn giao"];
+const DEF_PAYMENTS = [["Tạm ứng ký hợp đồng", 20], ["Hoàn thành móng", 15], ["Hoàn thành phần thô", 25],
+  ["Hoàn thiện đạt 50%", 20], ["Hoàn thiện đạt 100%", 15], ["Nghiệm thu bàn giao", 5]];
+const DEF_HANDOVER = ["Hồ sơ hoàn công", "Biên bản nghiệm thu kỹ thuật", "Phiếu bảo hành thiết bị & vật tư",
+  "Hướng dẫn vận hành hệ thống M&E", "Vệ sinh tổng & dọn dẹp bàn giao", "Bàn giao chìa khóa & sổ tay nhà"];
+
+const fmt = (n) => Math.round(n || 0).toLocaleString("vi-VN") + " đ";
+const fmtN = (n) => (Math.round((n || 0) * 100) / 100).toLocaleString("vi-VN");
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+/* ---------- storage (window.storage + fallback) ---------- */
+let MEM = [];
+async function loadAll() {
+  try { if (window.storage) { const r = await window.storage.get("xcons:quotes"); return r ? JSON.parse(r.value) : []; } }
+  catch (e) { /* not found / unavailable */ }
+  return MEM;
+}
+async function saveAll(arr) {
+  MEM = arr;
+  try { if (window.storage) await window.storage.set("xcons:quotes", JSON.stringify(arr)); } catch (e) {}
+}
+
+export default function App() {
+  const [tab, setTab] = useState("create"); // create | list | track
+  const [step, setStep] = useState(0);
+  const [cfg, setCfg] = useState(DEFAULT_CFG);
+  const [showCfg, setShowCfg] = useState(false);
+  const [quotes, setQuotes] = useState([]);
+  const [toast, setToast] = useState("");
+  const fileRef = useRef(null);
+
+  const t0 = new Date();
+  const blankCustomer = () => ({
+    name: "", phone: "", address: "", projectType: PROJECT_TYPES[0], land: "", floors: "",
+    style: STYLES[0], budget: "",
+    quoteNo: "XC-" + t0.getFullYear() + "-" + String(t0.getMonth() + 1).padStart(2, "0") + String(Math.floor(Math.random() * 900 + 100)),
+    date: t0.toLocaleDateString("vi-VN"),
+  });
+
+  const [id, setId] = useState(null);
+  const [status, setStatus] = useState("draft");
+  const [customer, setCustomer] = useState(blankCustomer());
+  const [sel, setSel] = useState({ design: "d2", build: "b2", interior: "i2" });
+  const [inc, setInc] = useState({ design: true, build: true, interior: true });
+  const [items, setItems] = useState(DEFAULT_CFG.defaultItems.map((it) => ({ id: uid(), name: it.name, area: 0, coef: it.coef })));
+  const [designArea, setDesignArea] = useState(0);
+  const [interiorArea, setInteriorArea] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [vatOn, setVatOn] = useState(false);
+  const [detailOn, setDetailOn] = useState(false);
+  const [detailItems, setDetailItems] = useState([]);
+
+  useEffect(() => { loadAll().then(setQuotes); }, []);
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 2200); };
+
+  const designP = cfg.designPkgs.find((p) => p.id === sel.design) || cfg.designPkgs[0];
+  const buildP = cfg.buildPkgs.find((p) => p.id === sel.build) || cfg.buildPkgs[0];
+  const interiorP = cfg.interiorPkgs.find((p) => p.id === sel.interior) || cfg.interiorPkgs[0];
+
+  const calc = useMemo(() => {
+    const builtArea = items.reduce((s, it) => s + (+it.area || 0) * (+it.coef || 0) / 100, 0);
+    const buildCost = inc.build ? builtArea * buildP.price : 0;
+    const designCost = inc.design ? (+designArea || 0) * designP.price : 0;
+    const interiorCost = inc.interior ? (+interiorArea || 0) * interiorP.price : 0;
+    const detailTotal = detailOn ? detailItems.reduce((s, d) => s + (+d.qty || 0) * (+d.price || 0), 0) : 0;
+    const subtotal = buildCost + designCost + interiorCost + detailTotal;
+    const discountAmt = subtotal * (+discount || 0) / 100;
+    const afterDisc = subtotal - discountAmt;
+    const vatAmt = vatOn ? afterDisc * cfg.vatRate / 100 : 0;
+    const total = afterDisc + vatAmt;
+    return { builtArea, buildCost, designCost, interiorCost, detailTotal, subtotal, discountAmt, afterDisc, vatAmt, total };
+  }, [items, inc, buildP, designP, interiorP, designArea, interiorArea, discount, vatOn, detailOn, detailItems, cfg.vatRate]);
+
+  const totalFloor = items.filter((it) => +it.coef >= 100).reduce((s, it) => s + (+it.area || 0), 0);
+
+  const addItem = () => setItems([...items, { id: uid(), name: "Hạng mục mới", area: 0, coef: 100 }]);
+  const updItem = (i, k, v) => setItems(items.map((it) => (it.id === i ? { ...it, [k]: v } : it)));
+  const delItem = (i) => setItems(items.filter((it) => it.id !== i));
+  const addDet = () => setDetailItems([...detailItems, { id: uid(), name: "", unit: "m²", qty: 0, price: 0 }]);
+  const updDet = (i, k, v) => setDetailItems(detailItems.map((d) => (d.id === i ? { ...d, [k]: v } : d)));
+  const delDet = (i) => setDetailItems(detailItems.filter((d) => d.id !== i));
+
+  /* ---- serialize ---- */
+  const snapshot = () => ({
+    id: id || uid(), status, customer, sel, inc, items, designArea, interiorArea,
+    discount, vatOn, detailOn, detailItems, total: calc.total, updatedAt: Date.now(),
+  });
+  const loadQuote = (q) => {
+    setId(q.id); setStatus(q.status || "draft"); setCustomer(q.customer); setSel(q.sel); setInc(q.inc);
+    setItems(q.items); setDesignArea(q.designArea); setInteriorArea(q.interiorArea);
+    setDiscount(q.discount); setVatOn(q.vatOn); setDetailOn(q.detailOn || false);
+    setDetailItems(q.detailItems || []); setStep(0); setTab("create");
+  };
+  const newQuote = () => {
+    setId(null); setStatus("draft"); setCustomer(blankCustomer()); setSel({ design: "d2", build: "b2", interior: "i2" });
+    setInc({ design: true, build: true, interior: true });
+    setItems(cfg.defaultItems.map((it) => ({ id: uid(), name: it.name, area: 0, coef: it.coef })));
+    setDesignArea(0); setInteriorArea(0); setDiscount(0); setVatOn(false); setDetailOn(false); setDetailItems([]); setStep(0);
+  };
+  const saveQuote = async () => {
+    if (!customer.name) { flash("⚠ Vui lòng nhập tên khách hàng trước khi lưu."); setStep(0); return; }
+    const snap = snapshot(); setId(snap.id);
+    const exist = quotes.find((q) => q.id === snap.id);
+    const merged = exist ? { ...exist, ...snap } : snap;
+    const arr = exist ? quotes.map((q) => (q.id === snap.id ? merged : q)) : [merged, ...quotes];
+    setQuotes(arr); await saveAll(arr); flash("✓ Đã lưu báo giá " + customer.quoteNo);
+  };
+  const dupQuote = async (q) => {
+    const c = { ...q, id: uid(), customer: { ...q.customer, quoteNo: q.customer.quoteNo + "-COPY" }, status: "draft", updatedAt: Date.now() };
+    const arr = [c, ...quotes]; setQuotes(arr); await saveAll(arr); flash("✓ Đã nhân bản.");
+  };
+  const delQuote = async (qid) => {
+    if (!confirm("Xóa báo giá này?")) return;
+    const arr = quotes.filter((q) => q.id !== qid); setQuotes(arr); await saveAll(arr); flash("✓ Đã xóa.");
+  };
+  const setQStatus = async (qid, st) => {
+    const arr = quotes.map((q) => {
+      if (q.id !== qid) return q;
+      const upd = { ...q, status: st };
+      if (st === "build" && !q.tracking) upd.tracking = {
+        milestones: DEF_MILESTONES.map((n) => ({ name: n, pct: 0 })),
+        payments: DEF_PAYMENTS.map(([n, p]) => ({ name: n, pct: p, paid: false })),
+        handover: DEF_HANDOVER.map((n) => ({ name: n, done: false })),
+      };
+      return upd;
+    });
+    setQuotes(arr); await saveAll(arr);
+  };
+  const updTracking = async (qid, tracking) => {
+    const arr = quotes.map((q) => (q.id === qid ? { ...q, tracking } : q));
+    setQuotes(arr); await saveAll(arr);
+  };
+
+  /* ---- config io ---- */
+  const exportCfg = () => {
+    const b = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "XCONS_cau_hinh_don_gia.json"; a.click();
+  };
+  const importCfg = (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => { try { setCfg({ ...DEFAULT_CFG, ...JSON.parse(r.result) }); flash("✓ Đã nạp cấu hình."); } catch { flash("⚠ File không hợp lệ."); } }; r.readAsText(f);
+  };
+
+  /* ---- excel export ---- */
+  const exportExcel = () => {
+    const rows = [
+      ["XCONS E&C — WE BUILD YOUR DREAM"],
+      ["HỒ SƠ ĐỀ XUẤT GIÁ TRỊ"],
+      [],
+      ["Khách hàng", customer.name, "", "Số báo giá", customer.quoteNo],
+      ["Điện thoại", customer.phone, "", "Ngày lập", customer.date],
+      ["Công trình", customer.projectType, "", "Phong cách", customer.style],
+      ["Địa chỉ", customer.address],
+      [],
+      ["STT", "Hạng mục", "Quy mô", "Đơn giá", "Thành tiền"],
+    ];
+    let n = 1;
+    if (inc.design) rows.push([n++, "Thiết kế kiến trúc — Gói " + designP.t, fmtN(designArea) + " m²", designP.price, Math.round(calc.designCost)]);
+    if (inc.build) rows.push([n++, "Thi công xây dựng — Gói " + buildP.t, fmtN(calc.builtArea) + " m²", buildP.price, Math.round(calc.buildCost)]);
+    if (inc.interior && interiorP.price > 0) rows.push([n++, "Thi công nội thất — Gói " + interiorP.t, fmtN(interiorArea) + " m²", interiorP.price, Math.round(calc.interiorCost)]);
+    if (detailOn) detailItems.forEach((d) => rows.push([n++, d.name, fmtN(d.qty) + " " + d.unit, +d.price, Math.round((+d.qty || 0) * (+d.price || 0))]));
+    rows.push([], ["", "", "", "Tạm tính", Math.round(calc.subtotal)]);
+    if (+discount > 0) rows.push(["", "", "", "Chiết khấu " + discount + "%", -Math.round(calc.discountAmt)]);
+    if (vatOn) rows.push(["", "", "", "VAT " + cfg.vatRate + "%", Math.round(calc.vatAmt)]);
+    rows.push(["", "", "", "TỔNG CỘNG", Math.round(calc.total)]);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 6 }, { wch: 42 }, { wch: 16 }, { wch: 16 }, { wch: 18 }];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Bao gia");
+    XLSX.writeFile(wb, "XCONS_BaoGia_" + (customer.quoteNo || "moi") + ".xlsx");
+  };
+
+  const STEPS = [
+    { t: "Tiếp nhận nhu cầu", s: "Thông tin khách & công trình", icon: <Users size={16} /> },
+    { t: "Concept & Gói", s: "Lựa chọn gói dịch vụ", icon: <Layers size={16} /> },
+    { t: "Khái toán", s: "Bóc tách & tính chi phí", icon: <Calculator size={16} /> },
+    { t: "Hồ sơ báo giá", s: "Xuất bản đề xuất", icon: <FileText size={16} /> },
+  ];
+  const buildList = quotes.filter((q) => q.status === "build" || q.status === "done");
+
+  return (
+    <div className="xc-root">
+      <style>{CSS}</style>
+
+      <div className="xc-top no-print">
+        <div className="xc-top-in">
+          <div className="xc-brand">
+            <div className="xc-mark"><b>XC</b></div>
+            <div><div className="xc-name">XCONS E&amp;C</div><div className="xc-tag">WE BUILD YOUR DREAM</div></div>
+          </div>
+          <div className="xc-top-r">
+            <a><Phone size={13} /> 0918 667 499</a><a><Globe size={13} /> xconsenc.com.vn</a>
+            <button className="xc-cfg-btn" onClick={() => setShowCfg(true)}><Settings2 size={14} /> Cấu hình đơn giá</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="xc-wrap">
+        {/* TABS */}
+        <div className="xc-tabs no-print">
+          <div className={"xc-tab" + (tab === "create" ? " active" : "")} onClick={() => setTab("create")}><FileText size={15} /> {id ? "Sửa báo giá" : "Tạo báo giá"}</div>
+          <div className={"xc-tab" + (tab === "list" ? " active" : "")} onClick={() => setTab("list")}><List size={15} /> Danh sách {quotes.length > 0 && <span className="pill">{quotes.length}</span>}</div>
+          <div className={"xc-tab" + (tab === "track" ? " active" : "")} onClick={() => setTab("track")}><HardHat size={15} /> Theo dõi thi công {buildList.length > 0 && <span className="pill">{buildList.length}</span>}</div>
+        </div>
+
+        {/* ============ CREATE ============ */}
+        {tab === "create" && (<>
+          <div className="xc-steps no-print">
+            {STEPS.map((st, i) => (
+              <div key={i} className={"xc-step" + (i === step ? " active" : "") + (i < step ? " done" : "")} onClick={() => setStep(i)}>
+                <div className="xc-st-n">{i < step ? <Check size={16} /> : i + 1}</div>
+                <div><div className="xc-st-t">{st.t}</div><div className="xc-st-s">{st.s}</div></div>
+              </div>))}
+          </div>
+
+          {step === 0 && (
+            <div className="xc-card"><div className="xc-card-h"><div className="xc-icon"><Users size={17} /></div>
+              <div><h2>Bước 1 · Tiếp nhận nhu cầu</h2><p>Ghi nhận thông tin khách hàng & công trình.</p></div></div>
+              <div className="xc-body">
+                <div className="xc-sect-t">Khách hàng</div>
+                <div className="xc-grid">
+                  <div className="xc-f"><label>Họ và tên khách hàng</label><input value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} placeholder="VD: Anh Nguyễn Văn A" /></div>
+                  <div className="xc-f"><label>Số điện thoại</label><input value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} placeholder="09xx xxx xxx" /></div>
+                </div>
+                <div className="xc-f" style={{ marginTop: 14 }}><label>Địa chỉ công trình</label><input value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} placeholder="Số nhà, đường, phường, TP" /></div>
+                <div className="xc-sect-t">Công trình</div>
+                <div className="xc-grid-3">
+                  <div className="xc-f"><label>Loại công trình</label><select value={customer.projectType} onChange={(e) => setCustomer({ ...customer, projectType: e.target.value })}>{PROJECT_TYPES.map((p) => <option key={p}>{p}</option>)}</select></div>
+                  <div className="xc-f"><label>Diện tích đất</label><div className="xc-suffix"><input type="number" value={customer.land} onChange={(e) => setCustomer({ ...customer, land: e.target.value })} placeholder="0" /><span>m²</span></div></div>
+                  <div className="xc-f"><label>Quy mô số tầng</label><input value={customer.floors} onChange={(e) => setCustomer({ ...customer, floors: e.target.value })} placeholder="VD: 1 trệt 2 lầu" /></div>
+                  <div className="xc-f"><label>Phong cách mong muốn</label><select value={customer.style} onChange={(e) => setCustomer({ ...customer, style: e.target.value })}>{STYLES.map((s) => <option key={s}>{s}</option>)}</select></div>
+                  <div className="xc-f"><label>Ngân sách dự kiến</label><input value={customer.budget} onChange={(e) => setCustomer({ ...customer, budget: e.target.value })} placeholder="VD: 3 - 4 tỷ" /></div>
+                  <div className="xc-f"><label>Số báo giá</label><input value={customer.quoteNo} onChange={(e) => setCustomer({ ...customer, quoteNo: e.target.value })} /></div>
+                </div>
+              </div></div>)}
+
+          {step === 1 && (
+            <div className="xc-card"><div className="xc-card-h"><div className="xc-icon"><Layers size={17} /></div>
+              <div><h2>Bước 2 · Concept &amp; Gói dịch vụ</h2><p>Chọn gói thiết kế / thi công / nội thất.</p></div></div>
+              <div className="xc-body">
+                <div className="xc-sect-t"><Sparkles size={13} /> Hạng mục đưa vào báo giá</div>
+                <div className="xc-toggle-row">
+                  {[["design", "Thiết kế"], ["build", "Thi công xây dựng"], ["interior", "Nội thất"]].map(([k, lb]) => (
+                    <div key={k} className={"xc-chk" + (inc[k] ? " on" : "")} onClick={() => setInc({ ...inc, [k]: !inc[k] })}><span className="box">{inc[k] && <Check size={13} />}</span>{lb}</div>))}
+                </div>
+                {inc.design && (<><div className="xc-sect-t">Gói thiết kế</div><div className="xc-pkgs">
+                  {cfg.designPkgs.map((p) => (<div key={p.id} className={"xc-pkg" + (sel.design === p.id ? " sel" : "")} onClick={() => setSel({ ...sel, design: p.id })}>
+                    <div className="xc-pkg-badge">{sel.design === p.id && <Check size={13} />}</div><div className="xc-pkg-t">{p.t}</div><div className="xc-pkg-p">{fmt(p.price)}/m²</div><div className="xc-pkg-d">{p.d}</div></div>))}</div></>)}
+                {inc.build && (<><div className="xc-sect-t">Gói thi công xây dựng</div><div className="xc-pkgs" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
+                  {cfg.buildPkgs.map((p) => (<div key={p.id} className={"xc-pkg" + (sel.build === p.id ? " sel" : "")} onClick={() => setSel({ ...sel, build: p.id })}>
+                    <div className="xc-pkg-badge">{sel.build === p.id && <Check size={13} />}</div><div className="xc-pkg-t">{p.t}</div><div className="xc-pkg-p">{fmt(p.price)}/m²</div><div className="xc-pkg-d">{p.d}</div></div>))}</div></>)}
+                {inc.interior && (<><div className="xc-sect-t">Gói nội thất</div><div className="xc-pkgs" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
+                  {cfg.interiorPkgs.map((p) => (<div key={p.id} className={"xc-pkg" + (sel.interior === p.id ? " sel" : "")} onClick={() => setSel({ ...sel, interior: p.id })}>
+                    <div className="xc-pkg-badge">{sel.interior === p.id && <Check size={13} />}</div><div className="xc-pkg-t">{p.t}</div><div className="xc-pkg-p">{p.price ? fmt(p.price) + "/m²" : "—"}</div><div className="xc-pkg-d">{p.d}</div></div>))}</div></>)}
+              </div></div>)}
+
+          {step === 2 && (
+            <div className="xc-card"><div className="xc-card-h"><div className="xc-icon"><Calculator size={17} /></div>
+              <div><h2>Bước 3 · Khái toán chi phí</h2><p>Bóc tách diện tích & tính tổng đề xuất.</p></div></div>
+              <div className="xc-body">
+                {inc.build && (<>
+                  <div className="xc-sect-t">Bảng diện tích xây dựng quy đổi</div>
+                  <div style={{ overflowX: "auto" }}><table className="xc-table">
+                    <thead><tr><th style={{ width: "34%" }}>Hạng mục</th><th className="num">DT thực (m²)</th><th className="num">Hệ số (%)</th><th className="num">Quy đổi (m²)</th><th></th></tr></thead>
+                    <tbody>{items.map((it) => (<tr key={it.id}>
+                      <td><input className="xc-cellin t" value={it.name} onChange={(e) => updItem(it.id, "name", e.target.value)} /></td>
+                      <td><input className="xc-cellin" type="number" value={it.area} onChange={(e) => updItem(it.id, "area", e.target.value)} /></td>
+                      <td><input className="xc-cellin" type="number" value={it.coef} onChange={(e) => updItem(it.id, "coef", e.target.value)} /></td>
+                      <td className="num" style={{ fontWeight: 700, color: "var(--green)" }}>{fmtN((+it.area || 0) * (+it.coef || 0) / 100)}</td>
+                      <td><button className="xc-mini-btn" onClick={() => delItem(it.id)}><Trash2 size={14} /></button></td></tr>))}</tbody>
+                    <tfoot><tr>
+                      <td colSpan={3} style={{ fontWeight: 800, color: "var(--green)", borderTop: "1.5px solid var(--line-d)" }}>Tổng diện tích xây dựng quy đổi</td>
+                      <td className="num" style={{ fontWeight: 800, color: "var(--green)", fontSize: 15, borderTop: "1.5px solid var(--line-d)" }}>{fmtN(calc.builtArea)} m²</td>
+                      <td style={{ borderTop: "1.5px solid var(--line-d)" }}></td></tr></tfoot>
+                  </table></div>
+                  <button className="xc-add" onClick={addItem}><Plus size={15} /> Thêm hạng mục</button>
+                </>)}
+
+                <div className="xc-sect-t">Diện tích thiết kế &amp; nội thất</div>
+                <div className="xc-grid">
+                  {inc.design && <div className="xc-f"><label>Diện tích thiết kế (m²) — gợi ý ≈ {fmtN(totalFloor)}</label><div className="xc-suffix"><input type="number" value={designArea} onChange={(e) => setDesignArea(e.target.value)} placeholder="0" /><span>m²</span></div></div>}
+                  {inc.interior && <div className="xc-f"><label>Diện tích sàn nội thất (m²) — gợi ý ≈ {fmtN(totalFloor)}</label><div className="xc-suffix"><input type="number" value={interiorArea} onChange={(e) => setInteriorArea(e.target.value)} placeholder="0" /><span>m²</span></div></div>}
+                </div>
+                {(inc.design || inc.interior) && totalFloor > 0 && (
+                  <button className="xc-btn ghost sm" style={{ marginTop: 12 }} onClick={() => { if (inc.design) setDesignArea(totalFloor); if (inc.interior) setInteriorArea(totalFloor); }}>
+                    <Layers size={14} /> Lấy nhanh diện tích sàn ({fmtN(totalFloor)} m²)</button>)}
+
+                {/* DETAILED BREAKDOWN */}
+                <div className="xc-sect-t"><Wrench size={13} /> Bóc tách chi tiết bổ sung</div>
+                <div className={"xc-chk" + (detailOn ? " on" : "")} onClick={() => { setDetailOn(!detailOn); if (!detailOn && detailItems.length === 0) addDet(); }} style={{ display: "inline-flex", marginBottom: detailOn ? 14 : 0 }}>
+                  <span className="box">{detailOn && <Check size={13} />}</span> Thêm hạng mục riêng (ép cọc, hồ bơi, thang máy, nâng cấp vật tư…)</div>
+                {detailOn && (<>
+                  <div style={{ overflowX: "auto" }}><table className="xc-table">
+                    <thead><tr><th style={{ width: "38%" }}>Hạng mục</th><th>ĐVT</th><th className="num">Khối lượng</th><th className="num">Đơn giá</th><th className="num">Thành tiền</th><th></th></tr></thead>
+                    <tbody>{detailItems.map((d) => (<tr key={d.id}>
+                      <td><input className="xc-cellin t" value={d.name} placeholder="VD: Ép cọc bê tông" onChange={(e) => updDet(d.id, "name", e.target.value)} /></td>
+                      <td><input className="xc-cellin t" style={{ width: 70 }} value={d.unit} onChange={(e) => updDet(d.id, "unit", e.target.value)} /></td>
+                      <td><input className="xc-cellin" type="number" value={d.qty} onChange={(e) => updDet(d.id, "qty", e.target.value)} /></td>
+                      <td><input className="xc-cellin" type="number" value={d.price} onChange={(e) => updDet(d.id, "price", e.target.value)} /></td>
+                      <td className="num" style={{ fontWeight: 700, color: "var(--green)" }}>{fmt((+d.qty || 0) * (+d.price || 0))}</td>
+                      <td><button className="xc-mini-btn" onClick={() => delDet(d.id)}><Trash2 size={14} /></button></td></tr>))}</tbody>
+                  </table></div>
+                  <button className="xc-add" onClick={addDet}><Plus size={15} /> Thêm dòng chi tiết</button>
+                </>)}
+
+                <div className="xc-sect-t">Điều chỉnh</div>
+                <div className="xc-grid">
+                  <div className="xc-f"><label>Chiết khấu (%)</label><div className="xc-suffix"><input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" /><span>%</span></div></div>
+                  <div className="xc-f"><label>Thuế VAT</label><div className={"xc-chk" + (vatOn ? " on" : "")} onClick={() => setVatOn(!vatOn)} style={{ height: 40 }}><span className="box">{vatOn && <Check size={13} />}</span> Áp dụng VAT {cfg.vatRate}%</div></div>
+                </div>
+
+                <div className="xc-sum">
+                  {inc.design && <div className="xc-sum-row"><span>Phí thiết kế ({designP.t})</span><b>{fmt(calc.designCost)}</b></div>}
+                  {inc.build && <div className="xc-sum-row"><span>Thi công xây dựng ({buildP.t} · {fmtN(calc.builtArea)}m²)</span><b>{fmt(calc.buildCost)}</b></div>}
+                  {inc.interior && <div className="xc-sum-row"><span>Nội thất ({interiorP.t})</span><b>{fmt(calc.interiorCost)}</b></div>}
+                  {detailOn && calc.detailTotal > 0 && <div className="xc-sum-row"><span>Hạng mục chi tiết bổ sung</span><b>{fmt(calc.detailTotal)}</b></div>}
+                  <div className="xc-sum-div" />
+                  <div className="xc-sum-row"><span>Tạm tính</span><b>{fmt(calc.subtotal)}</b></div>
+                  {+discount > 0 && <div className="xc-sum-row"><span>Chiết khấu {discount}%</span><b>− {fmt(calc.discountAmt)}</b></div>}
+                  {vatOn && <div className="xc-sum-row"><span>VAT {cfg.vatRate}%</span><b>{fmt(calc.vatAmt)}</b></div>}
+                  <div className="xc-sum-total"><span>Tổng giá trị đề xuất</span><b>{fmt(calc.total)}</b></div>
+                </div>
+              </div></div>)}
+
+          {step === 3 && (<>
+            <div className="xc-nav no-print" style={{ marginTop: 0, marginBottom: 16, justifyContent: "flex-end" }}>
+              <button className="xc-btn ghost" onClick={saveQuote}><Save size={16} /> Lưu báo giá</button>
+              <button className="xc-btn ghost" onClick={exportExcel}><FileSpreadsheet size={16} /> Xuất Excel</button>
+              <button className="xc-btn gold" onClick={() => window.print()}><Printer size={16} /> In / PDF</button>
+            </div>
+            <div id="xc-print"><div className="xc-doc">
+              <div className="xc-doc-top">
+                <div className="xc-brand"><div className="xc-mark"><b>XC</b></div><div><div className="xc-name">XCONS E&amp;C</div><div className="xc-tag">WE BUILD YOUR DREAM</div></div></div>
+                <div style={{ textAlign: "right", fontSize: 11.5, color: "#cfe0da", lineHeight: 1.7 }}>
+                  <div>159 Đường số 05, KP03, P. An Khánh, TP.HCM</div><div>Hotline: 0918 667 499</div><div>xconsenc.com.vn</div></div>
+              </div>
+              <div className="xc-doc-title"><h1>HỒ SƠ ĐỀ XUẤT GIÁ TRỊ</h1><div className="sub">Báo giá thiết kế · thi công · hoàn thiện nội thất</div></div>
+              <div className="xc-doc-meta">
+                <div><span className="k">Khách hàng</span><span className="v">{customer.name || "—"}</span></div>
+                <div><span className="k">Số báo giá</span><span className="v">{customer.quoteNo}</span></div>
+                <div><span className="k">Điện thoại</span><span className="v">{customer.phone || "—"}</span></div>
+                <div><span className="k">Ngày lập</span><span className="v">{customer.date}</span></div>
+                <div><span className="k">Công trình</span><span className="v">{customer.projectType}</span></div>
+                <div><span className="k">Phong cách</span><span className="v">{customer.style}</span></div>
+                <div style={{ gridColumn: "1 / -1" }}><span className="k">Địa chỉ</span><span className="v">{customer.address || "—"}</span></div>
+              </div>
+              <div className="xc-doc-sec"><h4>Chi tiết hạng mục đề xuất</h4>
+                <table className="xc-dtable">
+                  <thead><tr><th style={{ width: 34 }}>#</th><th>Hạng mục</th><th>Quy mô</th><th className="n">Đơn giá</th><th className="n">Thành tiền</th></tr></thead>
+                  <tbody>
+                    {(() => { let n = 0; return (<>
+                      {inc.design && <tr><td>{++n}</td><td>Thiết kế kiến trúc — Gói {designP.t}</td><td>{fmtN(designArea)} m²</td><td className="n">{fmt(designP.price)}/m²</td><td className="n">{fmt(calc.designCost)}</td></tr>}
+                      {inc.build && <tr><td>{++n}</td><td>Thi công xây dựng hoàn thiện — Gói {buildP.t}</td><td>{fmtN(calc.builtArea)} m²</td><td className="n">{fmt(buildP.price)}/m²</td><td className="n">{fmt(calc.buildCost)}</td></tr>}
+                      {inc.interior && interiorP.price > 0 && <tr><td>{++n}</td><td>Thi công nội thất — Gói {interiorP.t}</td><td>{fmtN(interiorArea)} m²</td><td className="n">{fmt(interiorP.price)}/m²</td><td className="n">{fmt(calc.interiorCost)}</td></tr>}
+                      {detailOn && detailItems.filter((d) => d.name).map((d) => <tr key={d.id}><td>{++n}</td><td>{d.name}</td><td>{fmtN(d.qty)} {d.unit}</td><td className="n">{fmt(d.price)}</td><td className="n">{fmt((+d.qty || 0) * (+d.price || 0))}</td></tr>)}
+                    </>); })()}
+                  </tbody>
+                  <tfoot>
+                    <tr><td colSpan={4} className="n">Tạm tính</td><td className="n">{fmt(calc.subtotal)}</td></tr>
+                    {+discount > 0 && <tr><td colSpan={4} className="n">Chiết khấu ({discount}%)</td><td className="n">− {fmt(calc.discountAmt)}</td></tr>}
+                    {vatOn && <tr><td colSpan={4} className="n">Thuế VAT ({cfg.vatRate}%)</td><td className="n">{fmt(calc.vatAmt)}</td></tr>}
+                  </tfoot>
+                </table></div>
+              <div className="xc-doc-grand"><span>Tổng giá trị đề xuất</span><b>{fmt(calc.total)}</b></div>
+              <div className="xc-doc-foot"><div className="note-t">Ghi chú &amp; cam kết</div>
+                Báo giá mang tính khái toán cho công trình tiêu chuẩn; giá trị cuối được chốt trên hồ sơ thiết kế kỹ thuật. Hiệu lực 15 ngày kể từ ngày lập. XCONS E&amp;C cam kết dịch vụ trọn gói từ thiết kế tối ưu đến thi công chìa khóa trao tay — kiến tạo không gian sống mang lại giá trị hạnh phúc cho quý khách hàng.
+                <div className="xc-doc-sign"><div><div className="role">ĐẠI DIỆN KHÁCH HÀNG</div><div className="line">(Ký, ghi rõ họ tên)</div></div><div><div className="role">XCONS E&amp;C</div><div className="line">(Ký tên, đóng dấu)</div></div></div>
+              </div>
+            </div></div>
+          </>)}
+
+          <div className="xc-nav no-print">
+            <button className="xc-btn ghost" disabled={step === 0} style={{ opacity: step === 0 ? .4 : 1 }} onClick={() => setStep(Math.max(0, step - 1))}><ChevronLeft size={16} /> Quay lại</button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="xc-btn ghost" onClick={newQuote}><Plus size={16} /> Mới</button>
+              {step < 3 ? <button className="xc-btn primary" onClick={() => setStep(step + 1)}>Tiếp tục <ChevronRight size={16} /></button>
+                : <button className="xc-btn primary" onClick={saveQuote}><Save size={16} /> Lưu &amp; Hoàn tất</button>}
+            </div>
+          </div>
+        </>)}
+
+        {/* ============ LIST ============ */}
+        {tab === "list" && (
+          <div className="xc-card"><div className="xc-card-h"><div className="xc-icon"><List size={17} /></div>
+            <div><h2>Danh sách báo giá</h2><p>Quản lý, theo dõi trạng thái & chuyển dự án sang thi công.</p></div>
+            <button className="xc-btn gold sm" style={{ marginLeft: "auto" }} onClick={() => { newQuote(); setTab("create"); }}><Plus size={15} /> Tạo mới</button></div>
+            <div className="xc-body">
+              {quotes.length === 0 ? <div className="xc-empty">Chưa có báo giá nào. Bấm “Tạo mới” để bắt đầu.</div> : (
+                <div style={{ overflowX: "auto" }}><table className="xc-table">
+                  <thead><tr><th>Số BG</th><th>Khách hàng</th><th>Công trình</th><th className="num">Tổng giá trị</th><th>Trạng thái</th><th></th></tr></thead>
+                  <tbody>{quotes.map((q) => (<tr key={q.id}>
+                    <td style={{ fontWeight: 700, color: "var(--green)" }}>{q.customer.quoteNo}</td>
+                    <td>{q.customer.name}<div style={{ fontSize: 11, color: "var(--muted)" }}>{q.customer.phone}</div></td>
+                    <td>{q.customer.projectType}</td>
+                    <td className="num" style={{ fontWeight: 700 }}>{fmt(q.total)}</td>
+                    <td><select value={q.status} onChange={(e) => setQStatus(q.id, e.target.value)} style={{ border: "1px solid var(--line-d)", borderRadius: 7, padding: "5px 8px", fontFamily: "inherit", fontSize: 12, background: "#fff" }}>
+                      {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.lb}</option>)}</select></td>
+                    <td><div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <button className="xc-btn ghost sm" onClick={() => loadQuote(q)} title="Mở"><FolderOpen size={14} /></button>
+                      <button className="xc-btn ghost sm" onClick={() => dupQuote(q)} title="Nhân bản"><Copy size={14} /></button>
+                      <button className="xc-mini-btn" onClick={() => delQuote(q.id)} title="Xóa"><Trash2 size={14} /></button>
+                    </div></td></tr>))}</tbody>
+                </table></div>)}
+            </div></div>)}
+
+        {/* ============ TRACK ============ */}
+        {tab === "track" && (
+          <div className="xc-card"><div className="xc-card-h"><div className="xc-icon"><HardHat size={17} /></div>
+            <div><h2>Theo dõi thi công &amp; bàn giao</h2><p>Tiến độ, lịch thanh toán & nghiệm thu bàn giao.</p></div></div>
+            <div className="xc-body">
+              {buildList.length === 0 ? <div className="xc-empty">Chưa có dự án nào đang thi công.<br />Trong tab Danh sách, đổi trạng thái báo giá sang “Đang thi công”.</div>
+                : buildList.map((q) => <TrackCard key={q.id} q={q} onUpd={(tr) => updTracking(q.id, tr)} onDone={() => setQStatus(q.id, "done")} />)}
+            </div></div>)}
+      </div>
+
+      {/* CONFIG MODAL */}
+      {showCfg && (<div className="xc-ov no-print" onClick={() => setShowCfg(false)}>
+        <div className="xc-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="xc-modal-h"><h3>Cấu hình đơn giá &amp; hệ số</h3><button className="xc-x" onClick={() => setShowCfg(false)}><X size={18} /></button></div>
+          <div style={{ padding: 20 }}>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 0 }}>Nhập đơn giá thật của XCONS E&amp;C. Mọi báo giá mới sẽ áp dụng bảng này.</p>
+            {[["designPkgs", "Gói thiết kế (đ/m²)"], ["buildPkgs", "Gói thi công (đ/m²)"], ["interiorPkgs", "Gói nội thất (đ/m²)"]].map(([key, label]) => (
+              <div key={key}><div className="xc-sect-t" style={{ marginTop: 18 }}>{label}</div>
+                {cfg[key].map((p, idx) => (<div key={p.id} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                  <input className="xc-cellin t" style={{ flex: 2 }} value={p.t} onChange={(e) => { const a = [...cfg[key]]; a[idx] = { ...p, t: e.target.value }; setCfg({ ...cfg, [key]: a }); }} />
+                  <input className="xc-cellin" style={{ flex: 1 }} type="number" value={p.price} onChange={(e) => { const a = [...cfg[key]]; a[idx] = { ...p, price: +e.target.value }; setCfg({ ...cfg, [key]: a }); }} />
+                </div>))}</div>))}
+            <div className="xc-sect-t" style={{ marginTop: 18 }}>Thuế VAT mặc định (%)</div>
+            <div className="xc-suffix" style={{ maxWidth: 160 }}><input className="xc-cellin" type="number" value={cfg.vatRate} onChange={(e) => setCfg({ ...cfg, vatRate: +e.target.value })} /><span>%</span></div>
+            <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+              <button className="xc-btn ghost sm" onClick={exportCfg}><Download size={15} /> Lưu cấu hình</button>
+              <button className="xc-btn ghost sm" onClick={() => fileRef.current?.click()}><Upload size={15} /> Tải lên</button>
+              <input ref={fileRef} type="file" accept="application/json" style={{ display: "none" }} onChange={importCfg} />
+              <button className="xc-btn ghost sm" style={{ color: "var(--danger)", borderColor: "#e7c9c9" }} onClick={() => setCfg(DEFAULT_CFG)}>Khôi phục mặc định</button>
+              <button className="xc-btn gold sm" style={{ marginLeft: "auto" }} onClick={() => setShowCfg(false)}><Check size={15} /> Xong</button>
+            </div>
+          </div></div></div>)}
+
+      {toast && <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: "var(--green)", color: "#fff", padding: "11px 20px", borderRadius: 10, fontWeight: 600, fontSize: 13.5, boxShadow: "var(--shadow)", zIndex: 99, border: "1px solid var(--gold)" }}>{toast}</div>}
+    </div>
+  );
+}
+
+/* ---------- Tracking card ---------- */
+function TrackCard({ q, onUpd, onDone }) {
+  const tr = q.tracking || { milestones: [], payments: [], handover: [] };
+  const overall = tr.milestones.length ? Math.round(tr.milestones.reduce((s, m) => s + (+m.pct || 0), 0) / tr.milestones.length) : 0;
+  const setMs = (i, pct) => onUpd({ ...tr, milestones: tr.milestones.map((m, j) => (j === i ? { ...m, pct } : m)) });
+  const togPay = (i) => onUpd({ ...tr, payments: tr.payments.map((p, j) => (j === i ? { ...p, paid: !p.paid } : p)) });
+  const togHo = (i) => onUpd({ ...tr, handover: tr.handover.map((h, j) => (j === i ? { ...h, done: !h.done } : h)) });
+  const paidAmt = tr.payments.filter((p) => p.paid).reduce((s, p) => s + q.total * p.pct / 100, 0);
+
+  return (
+    <div style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 18, marginBottom: 16, background: "#fff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+        <div><div style={{ fontWeight: 800, color: "var(--green)", fontSize: 15 }}>{q.customer.name} · {q.customer.quoteNo}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)" }}>{q.customer.projectType} — {q.customer.address || "chưa có địa chỉ"}</div></div>
+        <span className={"xc-badge " + STATUS[q.status].cl}>{STATUS[q.status].lb}</span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "14px 0" }}>
+        <div style={{ flex: 1, height: 10, borderRadius: 8, background: "#eceae0", overflow: "hidden" }}>
+          <div style={{ width: overall + "%", height: "100%", background: "linear-gradient(90deg,var(--green-3),var(--gold))" }} /></div>
+        <b style={{ color: "var(--green)", fontSize: 15 }}>{overall}%</b>
+      </div>
+
+      <div className="xc-sect-t" style={{ marginTop: 8 }}>Tiến độ thi công</div>
+      {tr.milestones.map((m, i) => (
+        <div key={i} className={"xc-ms" + (m.pct >= 100 ? " done" : "")}>
+          <div className="ic">{m.pct >= 100 ? <CheckCircle2 size={20} color="var(--ok)" /> : <Circle size={20} color="var(--line-d)" />}</div>
+          <div style={{ flex: 1 }}><div className="t">{m.name}</div>
+            <div className="bar"><div className="fill" style={{ width: (m.pct || 0) + "%" }} /></div></div>
+          <input type="range" min={0} max={100} step={5} value={m.pct || 0} onChange={(e) => setMs(i, +e.target.value)} style={{ width: 110, accentColor: "#143a33" }} />
+          <b style={{ width: 42, textAlign: "right", fontSize: 13, color: "var(--green)" }}>{m.pct || 0}%</b>
+        </div>))}
+
+      <div className="xc-sect-t">Lịch thanh toán · Đã thu {fmt(paidAmt)} / {fmt(q.total)}</div>
+      <table className="xc-table"><tbody>{tr.payments.map((p, i) => (
+        <tr key={i}><td style={{ width: 40 }}><div className={"xc-chk" + (p.paid ? " on" : "")} onClick={() => togPay(i)} style={{ padding: 6, width: 30, height: 30, justifyContent: "center" }}><span className="box" style={{ margin: 0 }}>{p.paid && <Check size={12} />}</span></div></td>
+          <td style={{ fontWeight: 600 }}>{p.name}</td><td className="num" style={{ color: "var(--muted)" }}>{p.pct}%</td>
+          <td className="num" style={{ fontWeight: 700, color: p.paid ? "var(--ok)" : "var(--ink)" }}>{fmt(q.total * p.pct / 100)}</td></tr>))}</tbody></table>
+
+      <div className="xc-sect-t">Nghiệm thu &amp; Bàn giao</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+        {tr.handover.map((h, i) => (<div key={i} className={"xc-chk" + (h.done ? " on" : "")} onClick={() => togHo(i)} style={{ fontSize: 12.5 }}>
+          <span className="box">{h.done && <Check size={13} />}</span>{h.name}</div>))}
+      </div>
+      {q.status !== "done" && tr.handover.every((h) => h.done) && overall >= 100 && (
+        <button className="xc-btn gold" style={{ marginTop: 16 }} onClick={onDone}><CheckCircle2 size={16} /> Xác nhận hoàn tất bàn giao</button>)}
+    </div>);
+}
